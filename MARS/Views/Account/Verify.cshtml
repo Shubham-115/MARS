@@ -1,0 +1,43 @@
+﻿@model MARS.Models.Account.VerifiedEmailMobile;
+@{
+    ViewData["Title"] = "Verify";
+}
+
+@ViewData["msg"]
+<h1>Verify your Email and Mobile No  OTP </h1>
+
+
+
+
+@TempData["Verify"] 
+<hr />
+<div style="color:red;text-align:center"> Email OTP = @ViewData["otpEmail"]</div>
+<div style="color:red;text-align:center"> Mobile OTP =@ViewData["otpMob"]</div>
+<div class="row">
+    <div style="color:mediumspringgreen; background-color:lightyellow; text-align:center">@ViewData["msg"]</div>
+
+    <div class="col-4 offset-4 border border-2 border-dark rounded">
+        <div style="color:coral">@TempData["msg"]</div>
+        <form asp-action="Verify">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="OTPEmailID" class="control-label"></label>
+                <input asp-for="OTPEmailID" class="form-control" placeholder="Enter Email OTP"/>
+                <span asp-validation-for="OTPEmailID" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="OTPMobile" class="control-label"></label>
+                <input asp-for="OTPMobile" class="form-control" placeholder="Enter Mobile OTP "/>
+                <span asp-validation-for="OTPMobile" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Verify" class="btn btn-outline-primary mt-2 mb-2 w-100" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+

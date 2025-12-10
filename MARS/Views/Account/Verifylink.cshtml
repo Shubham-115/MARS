@@ -1,0 +1,13 @@
+﻿
+@{
+    ViewData["Title"] = "Verifylink";
+}
+
+<h1>Verifylink</h1>
+
+@if (TempData["msg2"] != null)
+{
+    <div class="alert alert-success">
+        @Html.Raw(TempData["msg2"])
+    </div>
+}
