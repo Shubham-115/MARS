@@ -1,14 +1,16 @@
 ﻿using Humanizer.Localisation.DateToOrdinalWords;
+using MARS.Models.Account;
+using MARS.Models.Accounts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages;
+using NuGet.Common;
 using NuGet.Protocol;
-using MARS.Models.Account;
-using MARS.Models.Accounts;
 using System.Data;
+using System.Globalization;
+using System.Net.Security;
 using System.Security.Cryptography;
 using System.Text;
-using System.Net.Security;
 
 namespace MARS.DataAccess
 {
@@ -17,12 +19,12 @@ namespace MARS.DataAccess
         public string cs = StringConnection.dbcs;
 
         // write a functio SignUp for registration afeter verification 
-        public string Signup(string EmailID, string MobileNo, string FirstName, string LastName,string token)
+        public string Signup(string EmailID, string MobileNo, string FirstName, string LastName)
         {
            
             using (SqlConnection con = new SqlConnection(cs))
             {
-                string query = "INSERT INTO dbo.Users (MobileNo, EmailID, EmailVerified,MobileVerified,FirstName,LastName,Status,token,TokenGeneratedAt,IsUsedToken) VALUES (@MobileNo, @EmailID,@EmailVerified,@MobileVerified,@FirstName,@LastName,@Status,@token,@TokenGeneratedAt,@IsUsedToken)";
+                string query = "INSERT INTO dbo.Users (MobileNo, EmailID, EmailVerified,MobileVerified,FirstName,LastName,Status) VALUES (@MobileNo, @EmailID,@EmailVerified,@MobileVerified,@FirstName,@LastName,@Status)";
                 SqlCommand cmd = new SqlCommand(query, con);
 
                 cmd.CommandType = CommandType.Text;
@@ -33,9 +35,7 @@ namespace MARS.DataAccess
                 cmd.Parameters.AddWithValue("@EmailVerified", 0);
                 cmd.Parameters.AddWithValue("@MobileVerified", 0);              
                 cmd.Parameters.AddWithValue("@Status", 0);
-                cmd.Parameters.AddWithValue("@TokenGeneratedAt", DateTime.UtcNow);
-                cmd.Parameters.AddWithValue("@token", token);
-                cmd.Parameters.AddWithValue("@IsUsedToken", 0);
+               
                 con.Open();
 
                 try
@@ -229,34 +229,94 @@ namespace MARS.DataAccess
 
         // write a functio to verify Token 
 
-        public bool VerifyUser(string token)
+        public DateTime VerifyUser(string token,string EmailID)
         {
             using (SqlConnection con = new SqlConnection(cs))
             {
-                string checkQuery = "SELECT COUNT(*) FROM Users WHERE token = @token AND IsUsedToken = 0";
+                // Step 1: Get token generated time
+                string checkQuery = "SELECT TokenGeneratedAt FROM Users WHERE token = @token AND EmailID = @EmailID";
+
+                DateTime GeneratetokenTime;
+
                 using (var cmd = new SqlCommand(checkQuery, con))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
-                    con.Open();
-                    int count = (int)cmd.ExecuteScalar();
+                    cmd.Parameters.AddWithValue("@EmailID", EmailID);
 
-                    if (count == 0)
-                        return false; // Token invalid or already verified
+                    con.Open();
+                    object result = cmd.ExecuteScalar();
+                    con.Close();
+
+                    if (result == null)
+                        return DateTime.MinValue; // Invalid token
+
+                    GeneratetokenTime = Convert.ToDateTime(result);
                 }
 
-                // Update user as verified
-                string updateQuery = "UPDATE Users SET IsUsedToken = 1, token = NULL WHERE token = @Token";
+                // Step 2: Check expiry (30 minutes)
+                if ((DateTime.Now - GeneratetokenTime).TotalMinutes > 30)
+                {
+                    return DateTime.MinValue; // Token expired
+                }
+
+                // Step 3: Verify user
+                string updateQuery = "UPDATE Users SET IsUsedToken = 1, token = NULL, EmailVerified = 1 WHERE token = @token";
+
                 using (var cmd = new SqlCommand(updateQuery, con))
                 {
                     cmd.Parameters.AddWithValue("@token", token);
-                    
+
+                    con.Open();
                     int rows = cmd.ExecuteNonQuery();
-                    return rows > 0;
+                    con.Close();
+
+                    if (rows > 0)
+                        return GeneratetokenTime; // Verified
+                    else
+                        return DateTime.MinValue; // Token mismatch (should not normally happen)
                 }
             }
         }
 
 
+        // write a funciton to generate the Token and link 
 
-    }
+        public string UpdateToken(string EmailID)
+        {
+            string token = Guid.NewGuid().ToString();
+            
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                string UpdateToken = @"UPDATE Users SET token = @token,TokenGeneratedAt = @TokenGeneratedAt, IsUsedToken = 0 WHERE EmailID = @EmailID AND token IS NULL";
+                SqlCommand cmd = new SqlCommand(UpdateToken, con);
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@token", token);
+                cmd.Parameters.AddWithValue("TokenGeneratedAt", DateTime.Now);
+                cmd.Parameters.AddWithValue("@EmailID", EmailID);
+                con.Open();
+                cmd.ExecuteNonQuery ();
+                return token;
+              
+            }
+
+            return token;
+        }
+
+        // write a function to reset token 
+        public bool resetToken(string EmailID)
+        {
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                string UpdateToken = @"UPDATE Users SET token = @token,TokenGeneratedAt = @TokenGeneratedAt, IsUsedToken = 0,EmailVerified=0 WHERE EmailID = @EmailID ";
+                SqlCommand cmd = new SqlCommand(UpdateToken, con);
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@token", DBNull.Value);
+                cmd.Parameters.AddWithValue("@TokenGeneratedAt", DBNull.Value);
+                cmd.Parameters.AddWithValue("@EmailID", EmailID);
+                con.Open();
+                int row = cmd.ExecuteNonQuery();
+                return row>0;
+            }           
+        }
+    }    
 }
