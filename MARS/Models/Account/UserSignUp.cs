@@ -1,15 +1,25 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Runtime.InteropServices;
 
 namespace MARS.Models.Account
 {
     public class UserSignUp
     {
-        [Required]
+        [Required(ErrorMessage ="First Name is required")]
+        [MinLength(2,ErrorMessage ="Enter valid Name")]
+        [RegularExpression("^[a-zA-Z]+$", ErrorMessage = "Only letters are allowed")]
         public string FirstName { get; set; }
-        [Required]
+
+
+
+        [Required(ErrorMessage = "Last Name is required")]
+        [RegularExpression("^[a-zA-Z]+$", ErrorMessage = "Only letters are allowed")]
         public string LastName { get; set; }
-        [Required]
-       
+
+
+
+
+        [Required]       
         [RegularExpression("^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$", ErrorMessage = "Please enter a valid email address!")]
         public string EmailID { get; set; }
         

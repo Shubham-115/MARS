@@ -11,6 +11,11 @@
     <div class="alert alert-info">@TempData["msg1"]</div>
 }
 
+
+
+
+
+
 @if (TempData["Regenerate"] != null)
 {
     <div class="alert alert-success">
@@ -19,6 +24,26 @@
 }
 
 <br />
+
+
+@if (TempData["msg2"] != null)
+{
+    <div class="alert alert-success">
+        @Html.Raw(TempData["msg2"])
+    </div>
+}
+
+
+@if (TempData["verify"] != null)
+{
+    <div class="alert alert-success">
+        @Html.Raw(TempData["verify"])
+        
+    </div>
+}
+
+
+
 
 <a href="@Url.Action("Login", "Account")">Go to Login</a>
 

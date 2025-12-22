@@ -1,0 +1,53 @@
+﻿@model MARS.Models.Account.VerifyMobile
+
+@{
+    ViewData["Title"] = "MobileVerify";
+}
+
+@if (TempData["EmailSuccess"] != null)
+{
+    <div class="alert alert-success">
+        @Html.Raw(TempData["EmailSuccess"])
+      
+    </div>
+}
+<h4>VerifyMobile</h4>
+<hr />
+<div class="col-4 offset-4 border border-2 border-dark rounded">
+    
+    <div style="text-align:center; color:red">@TempData["OTP"]</div>
+    <div style="text-align:center; color:red"> @TempData["msg2"]</div>  
+    <div style="text-align:center; color:red">@TempData["Error"]</div>
+   <div style="text-align:center; color: red"> @TempData["notVerify"]</div>
+    <form asp-action="VerifyMobile" method="post" >
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="form-group">
+            <label asp-for="MobileNo" class="control-label"></label>
+            <input asp-for="MobileNo" id="MobileNo" class="form-control"autocomplete="off" placeholder="Enter your Mobile Number" />
+            <span asp-validation-for="MobileNo" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="OTP" class="control-label"></label>
+            <input asp-for="OTP" id="Otp" class="form-control"  autocomplete="off" placeholder="Enter your OTP" />
+            <span asp-validation-for="OTP" class="text-danger"></span>
+        </div>
+
+
+
+
+            <div class="form-group">
+            <input type="submit" value="Submit" name="ActionType" class="btn btn-primary mb-2 mt-2 w-100" />
+            </div>
+
+
+        <div class="form-group">
+            <input type="submit" value="Send_OTP" name="ActionType" class="btn btn-primary mb-2 mt-2 w-100" />
+        </div>
+        </form>
+    </div>
+
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+

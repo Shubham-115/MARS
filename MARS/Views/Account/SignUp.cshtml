@@ -18,32 +18,32 @@
 
     <div class="col-4 offset-4 border border-2 border-dark rounded">
         <div style="color:coral">@TempData["msg"]</div>
-
+        <div style="color:red; text-align:center">@TempData["notVerify"]</div>
 
         <form asp-action="SignUp" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div id="myform" class="form-group">
                 <label asp-for="FirstName" class="control-label"></label>
-                <input asp-for="FirstName" class="form-control"placeholder="Enter First Name" />
+                <input asp-for="FirstName" class="form-control" autocomplete="off" placeholder="Enter First Name" />
                 <span asp-validation-for="FirstName" class="text-danger"></span>
             </div>
 
             <div class="form-group">
                 <label asp-for="LastName" class="control-label"></label>
-                <input asp-for="LastName" class="form-control" placeholder="Enter Last Name"/>
+                <input asp-for="LastName" class="form-control" autocomplete="off" placeholder="Enter Last Name" />
                 <span asp-validation-for="LastName" class="text-danger"></span>
             </div>
 
             <div class="form-group">
                 <label asp-for="EmailID" class="control-label"></label>
-                <input asp-for="EmailID" id="EmailID" class="form-control" placeholder="Enter Email " />
+                <input asp-for="EmailID" id="EmailID" class="form-control" autocomplete="off" placeholder="Enter Email " />
                 <span asp-validation-for="EmailID" class="text-danger"></span>
             </div>
 
             <div class="form-group">
                 <label asp-for="MobileNo" class="control-label"></label>
-                <input asp-for="MobileNo" id="MobileNo" class="form-control"placeholder="Enter Mobile No" />
+                <input asp-for="MobileNo" id="MobileNo" class="form-control" autocomplete="off" placeholder="Enter Mobile No" />
                 <span asp-validation-for="MobileNo" class="text-danger"></span>
             </div>
            

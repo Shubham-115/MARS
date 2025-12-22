@@ -6,10 +6,12 @@ using Microsoft.Data.SqlClient;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages;
 using NuGet.Common;
 using NuGet.Protocol;
+using NuGet.Protocol.Plugins;
 using System.Data;
 using System.Globalization;
 using System.Net.Security;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
 using System.Text;
 
 namespace MARS.DataAccess
@@ -21,10 +23,10 @@ namespace MARS.DataAccess
         // write a functio SignUp for registration afeter verification 
         public string Signup(string EmailID, string MobileNo, string FirstName, string LastName)
         {
-           
+
             using (SqlConnection con = new SqlConnection(cs))
             {
-                string query = "INSERT INTO dbo.Users (MobileNo, EmailID, EmailVerified,MobileVerified,FirstName,LastName,Status) VALUES (@MobileNo, @EmailID,@EmailVerified,@MobileVerified,@FirstName,@LastName,@Status)";
+                string query = "INSERT INTO dbo.Users (MobileNo, EmailID, EmailVerified,MobileVerified,FirstName,LastName,Status,CreatedBy) VALUES (@MobileNo, @EmailID,@EmailVerified,@MobileVerified,@FirstName,@LastName,@Status,@CreatedBy)";
                 SqlCommand cmd = new SqlCommand(query, con);
 
                 cmd.CommandType = CommandType.Text;
@@ -33,9 +35,10 @@ namespace MARS.DataAccess
                 cmd.Parameters.AddWithValue("@MobileNo", MobileNo);
                 cmd.Parameters.AddWithValue("@EmailID", EmailID);
                 cmd.Parameters.AddWithValue("@EmailVerified", 0);
-                cmd.Parameters.AddWithValue("@MobileVerified", 0);              
+                cmd.Parameters.AddWithValue("@MobileVerified", 0);
                 cmd.Parameters.AddWithValue("@Status", 0);
-               
+                cmd.Parameters.AddWithValue("@CreatedBy", FirstName);
+
                 con.Open();
 
                 try
@@ -51,15 +54,15 @@ namespace MARS.DataAccess
                     }
                     return "Database error: " + ex.Message;
                 }
-               
-            }           
+
+            }
             return "Registration SuccessFull";
         }
 
 
 
         // write a function to check wether the user exist at the signUp time
-        public bool Isexist(string EmailID)
+        public bool IsexistEmail(string EmailID)
         {
             using (SqlConnection con = new SqlConnection(cs))
             {
@@ -67,6 +70,7 @@ namespace MARS.DataAccess
                 SqlCommand cmd = new SqlCommand(query, con);
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@EmailID", EmailID);
+               // cmd.Parameters.AddWithValue("@MobileNo", MobileNo);
                 con.Open();
                 int count = (int)cmd.ExecuteScalar();
                 return count > 0;
@@ -96,14 +100,37 @@ namespace MARS.DataAccess
         public bool VerifyEmailPassword(string EmailID, string Password)
         {
 
-            string PasswordHash = Password;//ConvertHashPassword(login.Password);
+            string PasswordHash = Password; //ConvertHashPassword(Password);
             using (SqlConnection con = new SqlConnection(cs))
             {
-                string query = @"select count(*) from dbo.Users where EmailID = @EmailID and PasswordHash = @PasswordHash";
+                string query = @"UPDATE dbo.Users  SET LastLoginAt = @LastLoginAt where EmailID = @EmailID and PasswordHash = @PasswordHash";
                 SqlCommand cmd = new SqlCommand(query, con);
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@EmailID", EmailID);
                 cmd.Parameters.AddWithValue("@PasswordHash", PasswordHash);
+                cmd.Parameters.AddWithValue("@LastLoginAt", DateTime.Now);
+                con.Open();
+
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                return rowsAffected > 0;
+
+            }
+        }
+
+
+        public bool IsValidEmailAndMobile(string EmailID, string MobileNo)
+        {
+
+            
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                string query = @"Select Count(*) from dbo.Users  where EmailID = @EmailID and MobileNo = @MobileNo";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@EmailID", EmailID);
+                cmd.Parameters.AddWithValue("@MobileNo", MobileNo);
+                
                 con.Open();
 
                 int count = (int)cmd.ExecuteScalar();
@@ -178,7 +205,7 @@ namespace MARS.DataAccess
                 con.Open();
                 int id = cmd.ExecuteNonQuery();
             }
-            return "PassWord Changed SuccessFully";
+            return "Password Change Successfully ";
         }
 
 
@@ -229,7 +256,7 @@ namespace MARS.DataAccess
 
         // write a functio to verify Token 
 
-        public DateTime VerifyUser(string token,string EmailID)
+        public DateTime VerifyUser(string token, string EmailID)
         {
             using (SqlConnection con = new SqlConnection(cs))
             {
@@ -284,19 +311,23 @@ namespace MARS.DataAccess
         public string UpdateToken(string EmailID)
         {
             string token = Guid.NewGuid().ToString();
-            
+
             using (SqlConnection con = new SqlConnection(cs))
             {
-                string UpdateToken = @"UPDATE Users SET token = @token,TokenGeneratedAt = @TokenGeneratedAt, IsUsedToken = 0 WHERE EmailID = @EmailID AND token IS NULL";
+                string UpdateToken = @"UPDATE Users SET token = @token,TokenGeneratedAt = @TokenGeneratedAt, IsUsedToken = 0 ,EmailVerified = 0, MobileVerified =0 WHERE EmailID = @EmailID AND token IS NULL";
                 SqlCommand cmd = new SqlCommand(UpdateToken, con);
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@token", token);
-                cmd.Parameters.AddWithValue("TokenGeneratedAt", DateTime.Now);
+                cmd.Parameters.AddWithValue("@TokenGeneratedAt", DateTime.Now);
                 cmd.Parameters.AddWithValue("@EmailID", EmailID);
+                cmd.Parameters.AddWithValue("@EmailVerified", 0);
+                cmd.Parameters.AddWithValue("@MobileVerified", 0);
+
+
                 con.Open();
-                cmd.ExecuteNonQuery ();
+                cmd.ExecuteNonQuery();
                 return token;
-              
+
             }
 
             return token;
@@ -315,8 +346,152 @@ namespace MARS.DataAccess
                 cmd.Parameters.AddWithValue("@EmailID", EmailID);
                 con.Open();
                 int row = cmd.ExecuteNonQuery();
-                return row>0;
-            }           
+                return row > 0;
+            }
         }
-    }    
+
+        // Write a function to verify mobile and Email address of the user ie valid or not
+        public bool IsMobileExist(string MobileNo)
+        {
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                string query = @"select count(*) from dbo.Users where MobileNO = @MobileNo";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.CommandType = CommandType.Text;
+                //cmd.Parameters.AddWithValue("@EmailID", EmailID);
+                cmd.Parameters.AddWithValue("@MobileNo", MobileNo);
+                con.Open();
+
+                int count = (int)cmd.ExecuteScalar();
+                return count > 0;
+
+            }
+        }
+
+        // write a function to Update Otp 
+        public string GetOTP(string MobileNo)
+        {
+            string OTP = GenerateRandomString(6);
+
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                string UpdateToken = @"UPDATE Users SET OTPCode = @OTPCode,OTPGeneratedAt = @OTPGeneratedAt WHERE MobileNo = @MobileNo ";
+                SqlCommand cmd = new SqlCommand(UpdateToken, con);
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@OTPCode", OTP);
+                cmd.Parameters.AddWithValue("OTPGeneratedAt", DateTime.Now);
+                cmd.Parameters.AddWithValue("@MobileNo", MobileNo);
+                con.Open();
+                cmd.ExecuteNonQuery();
+                return OTP;
+
+            }
+            return "Invalid Email and  Mobile";
+        }
+
+        // write a function to verify otp 
+        public DateTime VerifyOTP(string OTPCode, string MobileNo)
+        {
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                // Step 1: Get token generated time
+                string checkQuery = "SELECT OTPGeneratedAt FROM Users WHERE OTPCode = @OTPCode AND MobileNo = @MobileNo";
+
+                DateTime GenerateOTPTime;
+
+                using (var cmd = new SqlCommand(checkQuery, con))
+                {
+                    cmd.Parameters.AddWithValue("@OTPCode", OTPCode);
+                    cmd.Parameters.AddWithValue("@MobileNo", MobileNo);
+
+                    con.Open();
+                    object result = cmd.ExecuteScalar();
+                    con.Close();
+
+                    if (result == null)
+                        return DateTime.MinValue; // Invalid token
+
+                    GenerateOTPTime = Convert.ToDateTime(result);
+                }
+
+                // Step 2: Check expiry (30 minutes)
+                if ((DateTime.Now - GenerateOTPTime).TotalMinutes > 5)
+                {
+                    return DateTime.MinValue; // Token expired
+                }
+
+                // Step 3: Verify user
+                string updateQuery = "UPDATE Users SET MobileVerified = 1  WHERE OTPCode = @OTPCode";
+
+                using (var cmd = new SqlCommand(updateQuery, con))
+                {
+                    cmd.Parameters.AddWithValue("@OTPCode", OTPCode);
+
+                    con.Open();
+                    int rows = cmd.ExecuteNonQuery();
+                    con.Close();
+
+                    if (rows > 0)
+                        return GenerateOTPTime; // Verified
+                    else
+                        return DateTime.MinValue; // Token mismatch (should not normally happen)
+                }
+            }
+        }
+
+        public bool isVerified(string EmailID)
+        {
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                string query = @"Select COUNT(*) from  dbo.Users where EmailID = @EmailID and EmailVerified = 1 and MobileVerified = 1";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@EmailID", EmailID);
+                con.Open();
+                int count = (int)cmd.ExecuteScalar();
+                return count > 0;
+            }
+        }
+
+
+        public bool isVerifiedMobile(string MobileNo)
+        {
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                string query = @"Select COUNT(*) from  dbo.Users where MobileNo = @MobileNo and MobileVerified =1";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@MobileNo", MobileNo);
+                con.Open();
+                object result = cmd.ExecuteScalar();
+
+                if (result == null || result == DBNull.Value)
+                    return false;
+
+                return Convert.ToBoolean(result);
+            }
+        }
+
+        public bool SetPassWord(string EmailID, string Password)
+        {
+
+            string PasswordHash = ConvertHashPassword(Password);
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                string QUERY = "UPDATE dbo.Users SET PasswordHash = @PasswordHash,Status = @Status where EmailID = @EmailID";
+                SqlCommand cmd = new SqlCommand(QUERY, con);
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@EmailID", EmailID);
+                cmd.Parameters.AddWithValue("@PasswordHash", PasswordHash);
+                cmd.Parameters.AddWithValue("@Status", 0);
+
+                con.Open();
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                return rowsAffected > 0;
+
+            }
+            
+        }
+    }
 }
