@@ -14,3 +14,4 @@ namespace MARS.Models.Account
         public bool isSendOTP { get; set; }
     }
 }
+ 

@@ -9,7 +9,7 @@
         public string EmailID { get; set; }
 
         public string PasswordHash { get; set; }
-
+         
         public string OTPCode { get; set; }
         public DateTime OTPGeneratedAt { get; set; }
         public bool EmailVerified { get; set; }

@@ -5,7 +5,7 @@
 
         public long CompanyID { get; set; }   // BIGINT IDENTITY
         public long UserID { get; set; }      // Foreign Key
-
+         
         public string CompanyName { get; set; }
         public string RegistrationNumber { get; set; }
         public string GSTIN { get; set; }
